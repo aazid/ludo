@@ -79,14 +79,14 @@ console.log('\n--- RUNNING LUDO LEGENDS RULE ENGINE TESTS ---');
 // Test 1: Absolute position & track calculation
 console.log('\n1. Track & Safe Cell Mathematics:');
 assert(calculateAbsolutePosition('red', 1) === 0, 'Red start cell is track 0');
-assert(calculateAbsolutePosition('blue', 1) === 13, 'Blue start cell is track 13');
+assert(calculateAbsolutePosition('yellow', 1) === 13, 'Yellow start cell is track 13');
 assert(calculateAbsolutePosition('green', 1) === 26, 'Green start cell is track 26');
-assert(calculateAbsolutePosition('yellow', 1) === 39, 'Yellow start cell is track 39');
+assert(calculateAbsolutePosition('blue', 1) === 39, 'Blue start cell is track 39');
 assert(checkSafeCell(0), 'Track cell 0 is safe (Red start)');
 assert(checkSafeCell(8), 'Track cell 8 is safe');
-assert(checkSafeCell(13), 'Track cell 13 is safe (Blue start)');
+assert(checkSafeCell(13), 'Track cell 13 is safe (Yellow start)');
 assert(checkSafeCell(26), 'Track cell 26 is safe (Green start)');
-assert(checkSafeCell(39), 'Track cell 39 is safe (Yellow start)');
+assert(checkSafeCell(39), 'Track cell 39 is safe (Blue start)');
 assert(!checkSafeCell(5), 'Track cell 5 is not safe');
 
 // Test 2: Leaving base rules
@@ -108,10 +108,8 @@ const activeRed = createTestToken('red', 0, 'active', 1); // at track 0
 const otherRedTokens = [1, 2, 3].map(i => createTestToken('red', i));
 const redWithActive = createTestPlayer('red', [activeRed, ...otherRedTokens]);
 
-// Blue token at track 4 (step 1 from track 0 + 4 steps = track 4)
-// Blue start is 13, so to be at track 4, blue would have needed 44 steps
-// Or let's test a token at track 4:
-const activeBlue = createTestToken('blue', 0, 'active', 44); // track 4: (13 + 44 - 1)%52 = 56%52 = 4
+// Blue token at track 4: (39 + 18 - 1)%52 = 56%52 = 4
+const activeBlue = createTestToken('blue', 0, 'active', 18);
 const bluePlayer = createTestPlayer('blue', [activeBlue, ...[1, 2, 3].map(i => createTestToken('blue', i))]);
 
 state = createTestState([redWithActive, bluePlayer], 4);
@@ -127,8 +125,8 @@ assert(capturedBlue.stepsMoved === 0, 'Captured token steps reset to 0');
 
 // Test 4: Safe cells prevent capture
 console.log('\n4. Safe Cells Protection:');
-// Blue token at safe cell 8: (13 + 48 - 1)%52 = 60%52 = 8
-const safeBlue = createTestToken('blue', 0, 'active', 48); // at track 8
+// Blue token at safe cell 8: (39 + 22 - 1)%52 = 60%52 = 8
+const safeBlue = createTestToken('blue', 0, 'active', 22); // at track 8
 const bluePlayerSafe = createTestPlayer('blue', [safeBlue, ...[1, 2, 3].map(i => createTestToken('blue', i))]);
 // Red token at track 0 rolling 8 => lands on track 8
 state = createTestState([redWithActive, bluePlayerSafe], 8);

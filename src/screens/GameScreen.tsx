@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { X, Settings, Volume2, VolumeX, Maximize2, LogOut } from 'lucide-react';
+import { Settings, Volume2, VolumeX, LogOut } from 'lucide-react';
 import { useAppStore } from '../store/gameStore';
 import LudoBoard from '../components/board/LudoBoard';
-import Dice from '../components/dice/Dice';
+import DraggableDice from '../components/dice/DraggableDice';
 import PlayerCard from '../components/players/PlayerCard';
 import EventFeed from '../components/game/EventFeed';
 import ReactionsPanel from '../components/game/ReactionsPanel';
@@ -11,21 +11,21 @@ import VictoryScreen from './VictoryScreen';
 import type { PlayerColor } from '../types/game';
 import confetti from 'canvas-confetti';
 
-const COLOR_LABEL: Record<PlayerColor, string> = {
-  red:    'Red',
-  blue:   'Blue',
-  green:  'Green',
-  yellow: 'Yellow',
+const COLOR_HEX: Record<PlayerColor, string> = {
+  red:    '#ef4444',
+  yellow: '#eab308',
+  green:  '#22c55e',
+  blue:   '#3b82f6',
 };
 
 export default function GameScreen() {
-  const gameState    = useAppStore(s => s.gameState);
-  const settings     = useAppStore(s => s.settings);
-  const resetGame    = useAppStore(s => s.resetGame);
+  const gameState      = useAppStore(s => s.gameState);
+  const settings       = useAppStore(s => s.settings);
+  const resetGame      = useAppStore(s => s.resetGame);
   const updateSettings = useAppStore(s => s.updateSettings);
   const performBotTurn = useAppStore(s => s.performBotTurn);
 
-  const [showExit, setShowExit]   = useState(false);
+  const [showExit, setShowExit]     = useState(false);
   const [boardScale, setBoardScale] = useState(1);
   const boardContainerRef = useRef<HTMLDivElement>(null);
   const prevWinner = useRef<PlayerColor | null>(null);
@@ -35,11 +35,11 @@ export default function GameScreen() {
     const resize = () => {
       if (!boardContainerRef.current) return;
       const container = boardContainerRef.current;
-      const maxW = container.clientWidth;
-      const maxH = container.clientHeight;
+      const maxW = container.clientWidth - 16;
+      const maxH = container.clientHeight - 16;
       const boardNaturalSize = 570; // 15 cells × 38px
       const scale = Math.min(maxW / boardNaturalSize, maxH / boardNaturalSize, 1);
-      setBoardScale(scale);
+      setBoardScale(Math.max(scale, 0.45));
     };
     resize();
     window.addEventListener('resize', resize);
@@ -61,42 +61,39 @@ export default function GameScreen() {
     if (!gameState?.winner || gameState.winner === prevWinner.current) return;
     prevWinner.current = gameState.winner;
 
-    const colors = {
-      red: ['#ef4444', '#fca5a5'],
-      blue: ['#3b82f6', '#93c5fd'],
-      green: ['#22c55e', '#86efac'],
+    const colors: Record<PlayerColor, string[]> = {
+      red:    ['#ef4444', '#fca5a5'],
       yellow: ['#eab308', '#fde047'],
+      green:  ['#22c55e', '#86efac'],
+      blue:   ['#3b82f6', '#93c5fd'],
     };
 
     confetti({
-      particleCount: 200,
-      spread: 100,
+      particleCount: 220,
+      spread: 110,
       colors: colors[gameState.winner] ?? ['#9333ea', '#ec4899'],
       origin: { y: 0.6 },
     });
-    setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.7, x: 0.2 } }), 400);
-    setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.7, x: 0.8 } }), 700);
   }, [gameState?.winner]);
 
   if (!gameState) return null;
 
   const { players, currentPlayerIndex, phase } = gameState;
   const currentPlayer = players[currentPlayerIndex];
-  const isMyTurn = !currentPlayer?.isBot;
 
   // Victory screen
   if (phase === 'finished' && gameState.winner) {
     return <VictoryScreen />;
   }
 
-  // Arrange players for display: [0]=red=bottom-left, [1]=blue=bottom-right, [2]=green=top-right, [3]=yellow=top-left
+  // 4 corners: p0=Red(BL), p1=Yellow(TL), p2=Green(TR), p3=Blue(BR)
   const p0 = players[0];
   const p1 = players[1];
   const p2 = players[2];
   const p3 = players[3];
 
   return (
-    <div className="min-h-screen bg-[#050a1a] flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#050a1a] flex flex-col relative overflow-hidden select-none">
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/15 rounded-full blur-3xl" />
@@ -104,44 +101,45 @@ export default function GameScreen() {
       </div>
 
       {/* Top bar */}
-      <div className="relative z-10 flex items-center justify-between px-4 py-3 glass-dark border-b border-white/5">
+      <div className="relative z-10 flex items-center justify-between px-4 py-2.5 glass-dark border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-900 flex items-center justify-center">
-            <span className="text-xs font-bold">LL</span>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-900 flex items-center justify-center font-bold text-xs text-white">
+            LL
           </div>
           <div>
-            <p className="text-xs font-bold text-white/80">LUDO LEGENDS</p>
-            <p className="text-xs text-white/40">
-              {gameState.mode === 'computer' ? 'vs Computer' : gameState.mode === 'local' ? 'Local Game' : 'Private Room'}
+            <p className="text-xs font-bold text-white tracking-wider">LUDO LEGENDS</p>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest">
+              {gameState.mode === 'computer' ? 'vs Computer' : gameState.mode === 'local' ? 'Local Pass & Play' : 'Private Match'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Turn indicator */}
+          {/* Active Turn Badge */}
           <motion.div
             key={currentPlayer?.color}
-            initial={{ opacity: 0, y: -5 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl glass border border-white/10"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl glass border border-white/10"
           >
             <motion.div
-              className="w-2 h-2 rounded-full"
-              style={{ background: currentPlayer ? {
-                red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308'
-              }[currentPlayer.color] : 'white' }}
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ background: currentPlayer ? COLOR_HEX[currentPlayer.color] : 'white' }}
               animate={{ scale: [1, 1.4, 1] }}
               transition={{ duration: 0.8, repeat: Infinity }}
             />
-            <span className="text-xs font-semibold text-white/80">
+            <span className="text-xs font-bold text-white/90">
               {currentPlayer?.name}'s Turn
             </span>
           </motion.div>
+
+          <ReactionsPanel />
 
           {/* Sound toggle */}
           <button
             onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
             className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-all"
+            title="Toggle Sound"
           >
             {settings.soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
@@ -150,103 +148,97 @@ export default function GameScreen() {
           <button
             onClick={() => setShowExit(true)}
             className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-all"
+            title="Leave Match"
           >
             <LogOut size={18} />
           </button>
         </div>
       </div>
 
-      {/* Main game layout */}
-      <div className="flex-1 flex flex-col lg:flex-row relative z-10 gap-4 p-4 min-h-0">
-
-        {/* Left sidebar */}
-        <div className="hidden lg:flex flex-col gap-3 w-52 flex-shrink-0">
-          {p3 && <PlayerCard player={p3} position="top-left" />}
+      {/* Main Game Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row relative z-10 gap-4 p-4 min-h-0 items-center justify-center">
+        {/* Left Sidebar (Desktop) */}
+        <div className="hidden lg:flex flex-col gap-4 w-52 flex-shrink-0 h-full justify-between py-2">
+          {p1 && <PlayerCard player={p1} position="top-left" />}
           {p0 && <PlayerCard player={p0} position="bottom-left" />}
 
-          <div className="flex-1" />
-
-          {/* Event feed */}
-          <div className="glass-dark rounded-2xl p-3 border border-white/10">
+          <div className="glass-dark rounded-2xl p-3 border border-white/10 max-h-56">
             <EventFeed />
           </div>
         </div>
 
-        {/* Board center */}
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0 gap-4">
-          {/* Mobile player row top */}
-          <div className="flex lg:hidden gap-2 w-full justify-between">
-            {p3 && <PlayerCard player={p3} position="top-left" />}
+        {/* Center Board Column */}
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0 gap-3 w-full max-w-2xl">
+          {/* Mobile Top Player Cards */}
+          <div className="flex lg:hidden gap-2 w-full justify-between px-2">
+            {p1 && <PlayerCard player={p1} position="top-left" />}
             {p2 && <PlayerCard player={p2} position="top-right" />}
           </div>
 
-          {/* Board */}
+          {/* Scaled Board */}
           <div
             ref={boardContainerRef}
             className="flex items-center justify-center w-full"
-            style={{ minHeight: 300 }}
+            style={{ height: 'calc(100vh - 160px)', minHeight: 340, maxHeight: 600 }}
           >
             <div style={{ transform: `scale(${boardScale})`, transformOrigin: 'center center' }}>
               <LudoBoard />
             </div>
           </div>
 
-          {/* Mobile player row bottom */}
-          <div className="flex lg:hidden gap-2 w-full justify-between">
+          {/* Mobile Bottom Player Cards */}
+          <div className="flex lg:hidden gap-2 w-full justify-between px-2">
             {p0 && <PlayerCard player={p0} position="bottom-left" />}
-            {p1 && <PlayerCard player={p1} position="bottom-right" />}
+            {p3 && <PlayerCard player={p3} position="bottom-right" />}
           </div>
         </div>
 
-        {/* Right sidebar */}
-        <div className="hidden lg:flex flex-col gap-3 w-52 flex-shrink-0">
+        {/* Right Sidebar (Desktop) */}
+        <div className="hidden lg:flex flex-col gap-4 w-52 flex-shrink-0 h-full justify-between py-2">
           {p2 && <PlayerCard player={p2} position="top-right" />}
-          {p1 && <PlayerCard player={p1} position="bottom-right" />}
+          {p3 && <PlayerCard player={p3} position="bottom-right" />}
 
-          <div className="flex-1" />
-
-          {/* Dice + controls */}
-          <div className="glass-dark rounded-2xl p-4 border border-white/10 flex flex-col items-center gap-3">
-            <Dice size={80} disabled={currentPlayer?.isBot} />
-            <ReactionsPanel />
+          {/* Helper instructions */}
+          <div className="glass-dark rounded-2xl p-3 border border-white/10 text-xs text-white/50 space-y-1.5">
+            <p className="font-bold text-white/80">💡 Pro Tips:</p>
+            <p>• You can <strong className="text-purple-400">drag the dice anywhere</strong> on the board/screen!</p>
+            <p>• Rolling a 6 grants an extra turn (max 2 consecutive).</p>
+            <p>• Stars (★) are safe cells.</p>
           </div>
         </div>
       </div>
 
-      {/* Mobile bottom bar: dice */}
-      <div className="lg:hidden flex items-center justify-center gap-4 p-4 glass-dark border-t border-white/5">
-        <Dice size={64} disabled={currentPlayer?.isBot} />
-        <ReactionsPanel />
-      </div>
+      {/* Floating Draggable Dice (Can be moved anywhere on the entire screen!) */}
+      <DraggableDice />
 
-      {/* Exit confirmation */}
+      {/* Exit Confirmation Modal */}
       <AnimatePresence>
         {showExit && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="glass-dark rounded-3xl p-8 border border-white/10 text-center max-w-sm w-full"
+              className="glass-dark rounded-3xl p-6 border border-white/10 text-center max-w-sm w-full"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
             >
-              <p className="text-2xl mb-2">🚪</p>
-              <h3 className="text-xl font-bold text-white mb-2">Leave Game?</h3>
-              <p className="text-white/50 text-sm mb-6">Your progress will be lost. Are you sure?</p>
+              <p className="text-3xl mb-2">🚪</p>
+              <h3 className="text-xl font-bold text-white mb-1">Leave Match?</h3>
+              <p className="text-white/50 text-xs mb-5">Your current game progress will be lost.</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowExit(false)}
-                  className="flex-1 py-3 rounded-xl border border-white/20 text-white/70 hover:text-white hover:bg-white/10 transition-all font-semibold"
+                  className="flex-1 py-3 rounded-xl border border-white/20 text-white/80 hover:text-white hover:bg-white/10 transition-all text-sm font-semibold"
                 >
-                  Continue Playing
+                  Stay
                 </button>
                 <button
                   onClick={resetGame}
-                  className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-all"
+                  className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all shadow-lg shadow-red-500/30"
                 >
                   Leave Game
                 </button>
@@ -258,4 +250,3 @@ export default function GameScreen() {
     </div>
   );
 }
-

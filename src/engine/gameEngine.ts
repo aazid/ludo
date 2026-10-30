@@ -12,18 +12,18 @@ export const WINNING_POSITION = 57; // one past last home path cell
 // Starting positions on the main track (where a token enters when leaving base)
 export const COLOR_START: Record<PlayerColor, number> = {
   red:    0,
-  blue:   13,
+  yellow: 13,
   green:  26,
-  yellow: 39,
+  blue:   39,
 };
 
 // Home entry position: the cell BEFORE entering the home path
 // A token at this track position on its next move enters the home path
 export const HOME_ENTRY: Record<PlayerColor, number> = {
   red:    50,
-  blue:   11,
+  yellow: 11,
   green:  24,
-  yellow: 37,
+  blue:   37,
 };
 
 // Safe cells on the main track (cannot be captured here)
@@ -366,63 +366,49 @@ function getDangerousPositions(ownColor: PlayerColor, state: GameState): Set<num
 
 // ─── Board Grid Mapping ──────────────────────────────────────────────────────
 
-// Maps logical track position to grid [row, col] on a 15x15 board
-// The standard Ludo board layout
+// Maps logical track position (0-51) to grid [row, col] on a 15x15 board.
+// Contiguous clockwise path around the 4 arms of the board without skipping or diagonal teleports:
 export const TRACK_GRID_POSITIONS: [number, number][] = [
-  // Red path (bottom-left going right): 0-5
-  [14, 6], [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
-  // Turn (going right): 6-7
-  [8, 6], [8, 7],
-  // Bottom row going right: 8-11
-  [8, 8], [9, 8], [10, 8], [11, 8],
-  // Blue start column: 12-13
-  [12, 8], [13, 8],
-  // Blue going up: 14
-  [14, 8],
-  // Right column going up: 15-19
-  [14, 9], [14, 10], [14, 11], [14, 12], [14, 13],
-  // Turn up: 20
-  [14, 14],
-  // Right column going left: 21
-  [13, 14],
-  // Top of right: 22-25
-  [12, 14], [11, 14], [10, 14], [9, 14],
-  // Green start: 26-27
-  [8, 14], [8, 13],
-  // Turn: 28
-  [8, 12],
-  // Top row: 29-33
-  [8, 11], [8, 10], [8, 9], [7, 9], [6, 9],
-  // Top row continuing: 34-37
-  [6, 8], [6, 7], [6, 6], [6, 5],
-  // Yellow start: 38-39
-  [6, 4], [6, 3],
-  // Turn: 40
-  [6, 2],
-  // Left column going down: 41-45
-  [6, 1], [6, 0], [5, 0], [4, 0], [3, 0],
-  // Turn: 46
-  [2, 0],
-  // Left: 47
-  [1, 0],
-  // Bottom of left: 48-51
-  [0, 0], [0, 1], [0, 2], [0, 3],
+  // 0-4: Bottom arm left lane, moving UP towards center [0 is Red Start]
+  [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
+  // 5-9: Left arm bottom lane, moving LEFT towards outer end
+  [8, 5], [8, 4], [8, 3], [8, 2], [8, 1],
+  // 10-12: Left arm end cap
+  [8, 0], [7, 0], [6, 0],
+  // 13-17: Left arm top lane, moving RIGHT towards center [13 is Yellow Start]
+  [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+  // 18-22: Top arm left lane, moving UP towards outer end
+  [5, 6], [4, 6], [3, 6], [2, 6], [1, 6],
+  // 23-25: Top arm end cap
+  [0, 6], [0, 7], [0, 8],
+  // 26-30: Top arm right lane, moving DOWN towards center [26 is Green Start]
+  [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
+  // 31-35: Right arm top lane, moving RIGHT towards outer end
+  [6, 9], [6, 10], [6, 11], [6, 12], [6, 13],
+  // 36-38: Right arm end cap
+  [6, 14], [7, 14], [8, 14],
+  // 39-43: Right arm bottom lane, moving LEFT towards center [39 is Blue Start]
+  [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
+  // 44-48: Bottom arm right lane, moving DOWN towards outer end
+  [9, 8], [10, 8], [11, 8], [12, 8], [13, 8],
+  // 49-51: Bottom arm end cap (loops back to index 0)
+  [14, 8], [14, 7], [14, 6],
 ];
 
-// Home path grid positions for each color (steps 52-56, center = 57)
+// Home path grid positions for each color (steps 52-56 leading into center [7,7])
 export const HOME_PATH_GRID: Record<PlayerColor, [number, number][]> = {
-  red:    [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]],
-  blue:   [[8, 13], [8, 12], [8, 11], [8, 10], [8, 9], [8, 8]],
-  green:  [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]],
-  yellow: [[6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6]],
+  red:    [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]],
+  yellow: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]],
+  green:  [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],
+  blue:   [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]],
 };
 
-// Base positions for each color (4 tokens in base)
+// Base positions inside the 4 home yards (4 token sockets each)
 export const BASE_POSITIONS: Record<PlayerColor, [number, number][]> = {
-  red:    [[11, 2], [11, 4], [13, 2], [13, 4]],
-  blue:   [[11, 10], [11, 12], [13, 10], [13, 12]],
-  green:  [[1, 10], [1, 12], [3, 10], [3, 12]],
-  yellow: [[1, 2], [1, 4], [3, 2], [3, 4]],
+  red:    [[11, 1.5], [11, 3.5], [13, 1.5], [13, 3.5]],
+  yellow: [[1.5, 1.5], [1.5, 3.5], [3.5, 1.5], [3.5, 3.5]],
+  green:  [[1.5, 11], [1.5, 13], [3.5, 11], [3.5, 13]],
+  blue:   [[11, 11], [11, 13], [13, 11], [13, 13]],
 };
 
 // Home zone center

@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 const AVATAR_LIST = ['🦁', '🐯', '🦊', '🐺', '🐻', '🦝', '🐼', '🦄'];
 const BOT_NAMES = ['Atlas Bot', 'Nexus Bot', 'Vega Bot'];
-const PLAYER_COLORS: PlayerColor[] = ['red', 'blue', 'green', 'yellow'];
+const PLAYER_COLORS: PlayerColor[] = ['red', 'yellow', 'green', 'blue'];
 
 export interface AppState {
   // Navigation
